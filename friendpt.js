@@ -545,25 +545,89 @@
  * フレンドPtガル化逐ブックマークレット
  */
 
+/*
+ * フレンドPtガル化逐ブックマークレット
+ */
+
 (function (window, undefined) {
     'use strict';
     var nowPt, page, flag, log;
     //flag: 1=ガル化, 0=受け取る
 
-    function main() 
+    function main() {
+        if (flag === 0) {
             //フレンドPt受け取り処理
             recvFriendPt(page).done(function (recvPt, maxPage) {
                 nowPt += recvPt;
                 log('recv friendPt (after : ' + nowPt + ' pt, ' + maxPage + ' page)');
                 if (page === maxPage) {
                     //フレンドPt受け取り終わり
-                    alert('完了！');
-                    } else {
-                    //１ページ進める
-                    main(--page);
+                    alert('フレンドPtガル化処理終わり！');
+                    return
+                } else if (nowPt > 200000000) {
+                    //MAX10万Ptまで所持できる
+                    //所持フレンドPtが5万超→ガル化処理へ移行
+                    flag = 1;
+                    log('start cupid & sell');
                 }
                 return main();
             });
+        } else {
+            //ガル化処理
+            gfgb.cupid(10).done(function () {
+                nowPt -= 2000;
+                log('cupid (after : ' + nowPt + ' pt)');
+                gfgb.sell().done(function () {
+                    log('sell');
+                    if (nowPt < 2000) {
+                        //フレンドPt受け取り処理へ移行
+                        flag = 0;
+                        log('start recv friendPt');
+                    }
+                    main();
+                }).fail(function () {
+                    alert('エラーーーーーー');
+                });
+            })
+        }
+    }
+
+
+    /* 設定など
+    ------------------------------------------------------------------------ */
+    function init() {
+        if (document.getElementById('materialCardList').textContent.indexOf('卒業できるガールがいないみたいだよ') === -1) {
+            alert('前準備が完了していません。');
+            return;
+        }
+
+        myl.popup_agree('確認', '各項目をチェックし、OKを押して下さい。', [
+               '自己責任での利用に同意する',
+               '所持枠は10以上空けている',
+               '現在所持しているガールは全て保護している',
+               '卒業画面のフィルターは「レア以下」に設定していますか？'
+        ]).done(function () {
+            page = myl.intInput('最後のページから何ページまでガル化しますか？(1:all)', '1');
+
+            log = myl.output('フレンドPtガル化');
+            //endFlag = false;
+            gfgb.getFriendPt().done(function (pt) {
+                nowPt = pt;
+                log('現在：' + nowPt + 'Pt所持');
+                if (nowPt > 200000000) {
+                    log('start cupid & sell');
+                    flag = 1;//ガル化処理から始める
+                } else {
+                    log('start recv friendPt');
+                    flag = 0;//フレンドPt受け取り処理から始める
+                }
+                main();
+            });
+
+        });
+    }
+    init();
+})(window);
 
     window.gfgb = new GFGiftBookmarklet();
 })(window);
